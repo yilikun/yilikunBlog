@@ -1,0 +1,7 @@
+<%- include header %>
+<!--enctype 一次可上传多个图片-->
+<form method='post' action='/upload' enctype='multipart/form-data' >
+    <input type="file" multiple name='field1'/><br>
+    <input type="submit" />
+</form>
+<%- include footer %>

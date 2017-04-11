@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Blog</title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+
+</head>
+<body>
+<header>
+    <h1><%= title %></h1>
+</header>
+
+<nav>
+    <span><a href="/"><mark>首页</mark></a></span>
+    <% if (user) { %>
+      <span><a title="发表" href="/post">发布</a></span>
+      <span><a href="/upload">上传</a></span>
+      <span><a title="登出" href="/logout">退出</a></span>
+    <% } else { %>
+      <span><a title="登录" href="/login">登录</a></span>
+      <span><a title="注册" href="/reg">注册</a></span>
+    <% } %>
+</nav>
+<div>版本信息：1.0</div>
+<article>
+
+<% if (success) { %>
+    <div><%= success %></div>
+    <% } %>
+    <% if (error) { %>
+    <div><%= error %> </div>
+    <% } %>
