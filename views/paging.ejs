@@ -1,0 +1,23 @@
+<br />
+<div>
+    <% if (!isFirstPage) { %>
+    <span class="prepage">
+    <a title="上一页" href="?p=<%= page-1 %>">上一页</a>
+    </span>
+    <% } %>
+
+    <span class="prepage"><a href="?p=1">首页</a></span>
+
+    <% for(var i = 1;i <= total; i++){ %>
+    <span class="prepage">
+        <a href="?p=<%= i %>"><%= i %></a>
+    </span>
+    <% } %>
+    <span class="prepage"><a href="?p=<%= total %>>">尾页</a></span>
+
+    <% if (!isLastPage) { %>
+    <span class="nextpage">
+    <a title="下一页" href="?p=<%= page+1 %>">下一页</a>
+    </span>
+    <% } %>
+</div>

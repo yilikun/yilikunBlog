@@ -92,9 +92,12 @@ app.use(function(err, req, res, next) {
   res.render('error');//模板引擎，
 });
 
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || 3001);
 app.listen(app.get('port'), function() {
     console.log('Express服务器正在监听端口： ' + app.get('port'));
 });
+
+//nodejs 最大监听事件数是十个，这行代码使之成为无限多个
+require('events').EventEmitter.defaultMaxListeners = Infinity;
 
 module.exports = app;

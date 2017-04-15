@@ -3,9 +3,9 @@ var User = require('../models/User');
 //连接数据库
 var mongodb = require('../models/db');
 //发表需要的Post类
-var Post = require('../models/post');
+var Post = require('../models/Post');
 //引入留言需要的Comment类
-// var Comment = require('../models/comment');
+var Comment = require('../models/Comment');
 //需要引入一个加密的模块
 var crypto = require('crypto');
 //引入multer插件
@@ -44,27 +44,49 @@ function checkNotLogin(req, res, next) {
 module.exports = function (app) {
 
     //首页的路由
-    app.get("/",function (req, res) {
-        Post.getAll(null,function (err, posts) {
-            if (err){
-                posts=[]
+    // app.get("/",function (req, res) {
+    //     Post.getAll(null,function (err, posts) {
+    //         if (err){
+    //             posts=[]
+    //         }
+    //         res.render("index",{
+    //             title:"首页",
+    //             user:req.session.user,
+    //             posts: posts,
+    //             success: req.flash('success').toString(),
+    //             error: req.flash('error').toString()
+    //         })
+    //     })
+    //     // res.render("index",{
+    //     //     title:"首页",
+    //     //     user:req.session.user,
+    //     //     success:req.flash('success').toString(),
+    //     //     error:req.flash('error').toString()
+    //     // })
+    //
+    // })修改以上首页路由如下，实现分页功能
+    app.get('/', function (req, res) {
+        //判断是否是第一页，并把请求的页数转换成 number 类型
+        var page = parseInt(req.query.p) || 1;
+        //查询并返回第 page 页的 10 篇文章
+        Post.getTen(null, page, function (err, posts, total) {
+            if (err) {
+                posts = [];
             }
-            res.render("index",{
-                title:"首页",
-                user:req.session.user,
+            console.log(total)
+            res.render('index', {
+                title: '主页',
                 posts: posts,
+                page: page,
+                isFirstPage: (page - 1) == 0,
+                isLastPage: ((page - 1) * 10 + posts.length) == total,
+                user: req.session.user,
                 success: req.flash('success').toString(),
-                error: req.flash('error').toString()
-            })
-        })
-        // res.render("index",{
-        //     title:"首页",
-        //     user:req.session.user,
-        //     success:req.flash('success').toString(),
-        //     error:req.flash('error').toString()
-        // })
-
-    })
+                error: req.flash('error').toString(),
+                total:Math.ceil(total/10)
+            });
+        });
+    });
 
     //注册页面路由
     // app.get("/reg",checkNotLogin) 可改为以下的方式
@@ -215,6 +237,8 @@ module.exports = function (app) {
 
     //查看用户所有文章的路由
     app.get('/u/:name', function (req, res) {
+        //添加代码实现分页
+        var page = parseInt(req.query.p)||1;
         //检查用户是否存在
         //动态路由，用params
         User.get(req.params.name, function (err, user) {
@@ -223,7 +247,21 @@ module.exports = function (app) {
                 return res.redirect('/');//用户不存在则跳转到主页
             }
             //查询并返回该用户的所有文章
-            Post.getAll(user.name, function (err, posts) {
+            // Post.getAll(user.name, function (err, posts) {
+            //     if (err) {
+            //         req.flash('error', err);
+            //         return res.redirect('/');
+            //     }
+            //     res.render('user', {
+            //         title: user.name,
+            //         posts: posts,
+            //         user : req.session.user,
+            //         success : req.flash('success').toString(),
+            //         error : req.flash('error').toString()
+            //     });
+            // });
+            //查询并返回该用户第 page 页的 10 篇文章
+            Post.getTen(user.name, page, function (err, posts, total) {
                 if (err) {
                     req.flash('error', err);
                     return res.redirect('/');
@@ -231,9 +269,12 @@ module.exports = function (app) {
                 res.render('user', {
                     title: user.name,
                     posts: posts,
-                    user : req.session.user,
-                    success : req.flash('success').toString(),
-                    error : req.flash('error').toString()
+                    page: page,
+                    isFirstPage: (page - 1) == 0,
+                    isLastPage: ((page - 1) * 10 + posts.length) == total,
+                    user: req.session.user,
+                    success: req.flash('success').toString(),
+                    error: req.flash('error').toString()
                 });
             });
         });
@@ -255,6 +296,27 @@ module.exports = function (app) {
             });
         });
     });
+    //增加留言功能的路由
+    app.post('/comment/:name/:minute/:title', function (req, res) {
+        var date = new Date(),
+            time = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " +
+                   date.getHours() + ":" + (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes());
+        var comment = {
+            name: req.body.name,
+            time: time,
+            content: req.body.content
+        };
+        var newComment = new Comment(req.params.name, req.params.minute, req.params.title, comment);
+        newComment.save(function (err) {
+            if (err) {
+                req.flash('error', err);
+                return res.redirect('back');
+            }
+            req.flash('success', '留言成功!');
+            res.redirect('back');
+        });
+    });
+   // 注意：这里我们使用 res.redirect('back'); ，即留言成功后返回到该文章页。
 
     //编辑页面的路由
     app.get('/edit/:name/:minute/:title', checkLogin);
@@ -302,6 +364,23 @@ module.exports = function (app) {
             }
             req.flash('success', '删除成功!');
             res.redirect('/');
+        });
+    });
+
+    //查询文章存档的路由
+    app.get('/archive', function (req, res) {
+        Post.getArchive(function (err, posts) {
+            if (err) {
+                req.flash('error', err);
+                return res.redirect('/');
+            }
+            res.render('archive', {
+                title: '存档',
+                posts: posts,
+                user: req.session.user,
+                success: req.flash('success').toString(),
+                error: req.flash('error').toString()
+            });
         });
     });
 }
